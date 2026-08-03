@@ -124,11 +124,48 @@ class Device:
 
     @property
     def traits(self):
+        """Per-device metadata. Only populated while the panel is online."""
         return self._raw.get("traits") or {}
 
     @property
     def location(self):
-        return self._raw.get("location")
+        """Room label, e.g. "Living room".
+
+        Lives under `traits.location.name`, not at the top level. Most devices
+        have an empty `name`, so this is the only human-readable label available
+        and it is what the entities are named from.
+        """
+        return (self.traits.get("location") or {}).get("name") or None
+
+    @property
+    def enrollment_id(self):
+        """Enrollment code, e.g. "120-0918". The prefix encodes device type."""
+        return self._raw.get("enrollment_id")
+
+    @property
+    def bypassed(self):
+        """Whether this zone is currently bypassed (excluded from arming)."""
+        return (self.traits.get("bypass") or {}).get("enabled")
+
+    @property
+    def soak(self):
+        """Whether the zone is in soak-test mode (reports but never alarms)."""
+        return (self.traits.get("soak") or {}).get("enabled")
+
+    @property
+    def rssi(self):
+        """Stored RF survey for this device.
+
+        NOTE: `last_updated` is the time of the last survey, not a live reading -
+        every device on this panel reports the same enrollment-time timestamp.
+        Treat signal as static metadata, not telemetry.
+        """
+        return self.traits.get("rssi") or {}
+
+    @property
+    def fault_types(self):
+        """Active warning types on this device, e.g. ['INACTIVE', '1_WAY']."""
+        return [w.get("type") for w in (self.warnings or []) if isinstance(w, dict)]
 
     @property
     def state(self):

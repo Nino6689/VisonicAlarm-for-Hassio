@@ -37,6 +37,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         VisonicProblem(),
         VisonicTriggered(),
         VisonicReady(),
+        VisonicZonesBypassed(),
     ]
 
     for transport in ("bba", "gprs"):
@@ -141,6 +142,13 @@ class VisonicProblem(VisonicPanelBinarySensor):
                 for t in troubles
             ],
             "alerts": [a.get("alert_type") for a in (hub.alarm.alerts or [])],
+            # Device-level warnings name the room, which the panel-level trouble
+            # list does not always do.
+            "faulty_devices": {
+                (d.location or str(d.id)): d.fault_types
+                for d in hub.alarm.devices
+                if d.fault_types
+            },
         }
 
 
@@ -158,6 +166,38 @@ class VisonicTriggered(VisonicPanelBinarySensor):
     @property
     def extra_state_attributes(self):
         return {"alarms": hub.alarm.alarms or []}
+
+
+class VisonicZonesBypassed(VisonicPanelBinarySensor):
+    """Whether any zone is currently bypassed.
+
+    A bypassed zone is excluded from arming, so the system reports "armed" while
+    that door or detector is doing nothing. The panel does **not** raise this as
+    a trouble, so without this entity it is invisible from Home Assistant.
+    """
+
+    _attr_name = "Visonic Alarm Zones Bypassed"
+    _attr_unique_id = "visonic_alarm_zones_bypassed"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_icon = "mdi:shield-off-outline"
+
+    @staticmethod
+    def _bypassed():
+        return [d for d in hub.alarm.devices if d.bypassed]
+
+    @property
+    def is_on(self):
+        return bool(self._bypassed())
+
+    @property
+    def extra_state_attributes(self):
+        bypassed = self._bypassed()
+        soaked = [d for d in hub.alarm.devices if d.soak]
+        return {
+            "count": len(bypassed),
+            "bypassed_zones": [d.location or d.id for d in bypassed],
+            "soak_test_zones": [d.location or d.id for d in soaked],
+        }
 
 
 class VisonicReady(VisonicPanelBinarySensor):
@@ -181,13 +221,21 @@ class VisonicZone(VisonicEntity, BinarySensorEntity):
         self._device_id = device_id
         self._attr_unique_id = f"visonic_zone_{device_id}"
         self._name = None
+        self._location = None
         self._zone = ""
         self._subtype = None
         self._device_type = None
         self._state = None
+        self._enrollment_id = None
+        self._bypassed = None
+        self._soak = None
+        self._rssi = {}
+        self._faults = []
 
     @property
     def name(self):
+        # Most devices have an empty `name`; the room label lives in
+        # traits.location.name and is the only useful identifier.
         if self._name:
             return f"Visonic {self._name}"
         return f"Visonic Zone {self._device_id}"
@@ -198,18 +246,40 @@ class VisonicZone(VisonicEntity, BinarySensorEntity):
 
     @property
     def extra_state_attributes(self):
-        return {
+        attrs = {
+            "location": self._location,
             "zone_type": self._zone,
             "subtype": self._subtype,
             "device_type": self._device_type,
             "device_id": self._device_id,
+            "enrollment_id": self._enrollment_id,
+            "bypassed": self._bypassed,
+            "soak_test": self._soak,
+            "faults": self._faults,
         }
+        if self._rssi:
+            attrs["signal"] = self._rssi.get("current")
+            attrs["signal_average"] = self._rssi.get("average")
+            attrs["rf_channel"] = self._rssi.get("channel")
+            attrs["repeater"] = self._rssi.get("repeater")
+            # Survey timestamp, not a live reading - see Device.rssi.
+            attrs["signal_surveyed"] = self._rssi.get("last_updated")
+        return attrs
 
     def _refresh_metadata(self, device):
         self._zone = device.zone or ""
-        self._name = device.name or None
+        self._location = device.location
+        # Prefer an explicitly set device name; fall back to the room label.
+        # Some devices carry both ("Master Bedroom" vs the panel's abbreviated
+        # "Master Bdrm"), and the explicit name is the better one.
+        self._name = device.name or device.location or None
         self._subtype = device.subtype
         self._device_type = device.device_type
+        self._enrollment_id = device.enrollment_id
+        self._bypassed = device.bypassed
+        self._soak = device.soak
+        self._rssi = device.rssi
+        self._faults = device.fault_types
 
     def update(self):
         hub.update()

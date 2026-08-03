@@ -64,13 +64,21 @@ class VisonicAlarmContact(VisonicEntity, SensorEntity):
         self._alarm = alarm
         self._id = contact_id
         self._name = None
+        self._location = None
         self._zone = ""
         self._device_type = None
         self._subtype = None
+        self._enrollment_id = None
+        self._bypassed = None
+        self._rssi = {}
+        self._faults = []
 
     @property
     def name(self):
-        return str(self._name)
+        # Most devices have an empty `name`; traits.location.name is then the
+        # only human-readable label. Entity IDs are pinned by unique_id, so this
+        # only affects the displayed friendly name.
+        return str(self._name or self._location or self._id)
 
     @property
     def unique_id(self):
@@ -79,12 +87,22 @@ class VisonicAlarmContact(VisonicEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        return {
+        attrs = {
             CONTACT_ATTR_ZONE: self._zone,
             CONTACT_ATTR_NAME: self._name,
             CONTACT_ATTR_DEVICE_TYPE: self._device_type,
             CONTACT_ATTR_SUBTYPE: self._subtype,
+            "location": self._location,
+            "enrollment_id": self._enrollment_id,
+            "bypassed": self._bypassed,
+            "faults": self._faults,
         }
+        if self._rssi:
+            attrs["signal"] = self._rssi.get("current")
+            attrs["rf_channel"] = self._rssi.get("channel")
+            # Survey timestamp, not live telemetry - see Device.rssi.
+            attrs["signal_surveyed"] = self._rssi.get("last_updated")
+        return attrs
 
     @property
     def icon(self):
@@ -121,8 +139,13 @@ class VisonicAlarmContact(VisonicEntity, SensorEntity):
         # even on the first pass.
         self._zone = device.zone or ""
         self._name = device.name
+        self._location = device.location
         self._device_type = device.device_type
         self._subtype = device.subtype
+        self._enrollment_id = device.enrollment_id
+        self._bypassed = device.bypassed
+        self._rssi = device.rssi
+        self._faults = device.fault_types
 
         status = device.state
         subtype = device.subtype or ""
