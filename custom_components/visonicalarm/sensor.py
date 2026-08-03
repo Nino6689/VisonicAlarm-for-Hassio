@@ -205,10 +205,14 @@ class VisonicLastEvent(VisonicPanelSensor):
         if not self._event:
             return {"event_count": len(hub.alarm.events or [])}
         return {
+            "description": self._event.get("description"),
             "user": self._event.get("user"),
             "timestamp": self._event.get("timestamp"),
             "label": self._event.get("label"),
+            "type_id": self._event.get("type_id"),
             "zone": self._event.get("zone"),
+            "zone_name": self._event.get("zone_name"),
+            "device_type": self._event.get("device_type"),
             "event_id": self._event.get("event_id"),
             "event_count": len(hub.alarm.events or []),
         }

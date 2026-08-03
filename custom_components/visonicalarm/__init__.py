@@ -333,8 +333,14 @@ class VisonicSystem:
             return None
 
         last = events[-1]
+
+        # The API supplies `label` (DISARM, BURGLER, ...) and a human-readable
+        # `description` ("Disarm after alarm"). Prefer those over guessing from
+        # type_id: the upstream map only covered four IDs, so real events such
+        # as type_id 173 rendered as "Unknown type_id: 173".
         actions = {89: "Disarm", 85: "ArmHome", 86: "ArmAway", 2: "Alarm"}
         type_id = last.get("type_id")
+        action = last.get("label") or actions.get(type_id) or f"type_id {type_id}"
 
         timestamp = last.get("datetime")
         try:
@@ -347,11 +353,15 @@ class VisonicSystem:
 
         return {
             "event_id": last.get("event"),
-            "action": actions.get(type_id, f"Unknown type_id: {type_id}"),
+            "action": action,
+            "description": last.get("description"),
             "user": last.get("appointment"),
             "timestamp": timestamp,
             "label": last.get("label"),
+            "type_id": type_id,
             "zone": last.get("zone"),
+            "zone_name": last.get("zone_name"),
+            "device_type": last.get("device_type"),
         }
 
 
