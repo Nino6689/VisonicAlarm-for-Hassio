@@ -1,0 +1,50 @@
+refresh:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: visonicalarm
+
+sound_siren:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: visonicalarm
+
+silence_siren:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: visonicalarm
+    mode:
+      required: false
+      default: all
+      example: all
+      selector:
+        text:
+
+set_zone_name:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: visonicalarm
+    zone:
+      required: true
+      example: 5
+      selector:
+        number:
+          min: 1
+          max: 64
+          mode: box
+    name:
+      required: true
+      example: Kitchen
+      selector:
+        text:

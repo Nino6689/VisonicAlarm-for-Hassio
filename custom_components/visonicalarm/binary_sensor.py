@@ -1,136 +1,62 @@
-"""Binary sensors for the Visonic Alarm system.
-
-Everything here is new surface. The `sensor` platform's zone entities are kept
-untouched for backwards compatibility, but these expose the same zones with real
-device classes plus the panel health data the integration previously fetched and
-threw away.
-"""
+"""Binary sensors for the Visonic Alarm integration."""
 
 from __future__ import annotations
 
-import logging
-from datetime import timedelta
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
+    BinarySensorEntityDescription,
 )
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.const import EntityCategory
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import HUB as hub
-from .entity import VisonicEntity
+from .const import (
+    STATE_ARMING,
+    STATE_AWAY,
+    STATE_DISARM,
+    STATE_HOME,
+    SUBTYPE_CURTAIN,
+    SUBTYPE_MOTION,
+    ZONE_24H,
+    ZONE_INTERIOR,
+)
+from .coordinator import VisonicConfigEntry, VisonicDataUpdateCoordinator
+from .entity import VisonicEntity, VisonicZoneEntity
+from .models import VisonicData, VisonicDevice
 
-_LOGGER = logging.getLogger(__name__)
-
-SCAN_INTERVAL = timedelta(seconds=10)
-
-# Zone types that are only active while the system is armed away.
-INTERIOR_ZONES = ("INTERIOR",)
-
-
-def setup_platform(hass, config, add_devices, discovery_info=None):
-    """Set up the Visonic Alarm binary sensors."""
-    hub.update()
-
-    entities: list[BinarySensorEntity] = [
-        VisonicCloudConnection(),
-        VisonicProblem(),
-        VisonicTriggered(),
-        VisonicReady(),
-        VisonicZonesBypassed(),
-    ]
-
-    for transport in ("bba", "gprs"):
-        entities.append(VisonicTransport(transport))
-
-    for device in hub.alarm.devices:
-        subtype = device.subtype or ""
-        if "CONTACT" in subtype:
-            entities.append(VisonicZoneContact(device.id))
-        elif "MOTION" in subtype or "CURTAIN" in subtype:
-            entities.append(VisonicZoneMotion(device.id))
-
-    add_devices(entities, True)
+PARALLEL_UPDATES = 0
 
 
-class VisonicPanelBinarySensor(VisonicEntity, BinarySensorEntity):
-    """Base for panel-level binary sensors."""
+@dataclass(frozen=True, kw_only=True)
+class VisonicBinarySensorDescription(BinarySensorEntityDescription):
+    """Describes a panel-level Visonic binary sensor."""
 
-    _attr_should_poll = True
-
-    def update(self):
-        hub.update()
-
-
-class VisonicCloudConnection(VisonicPanelBinarySensor):
-    """Whether the Visonic cloud can currently reach the panel.
-
-    When this is off the panel is not reporting, so every other Visonic entity
-    is showing its last known value rather than live data.
-    """
-
-    _attr_name = "Visonic Alarm Cloud Connection"
-    _attr_unique_id = "visonic_alarm_cloud_connection"
-    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
-
-    @property
-    def is_on(self):
-        return bool(hub.alarm.connected)
-
-    @property
-    def extra_state_attributes(self):
-        return {
-            "transports": hub.alarm.connection_detail,
-            "last_update": hub.last_update,
-            "rest_api_version": hub.alarm.rest_version,
-        }
+    value_fn: Callable[[VisonicData], bool | None]
+    attributes_fn: Callable[[VisonicData], dict[str, Any]] | None = None
 
 
-class VisonicTransport(VisonicPanelBinarySensor):
-    """Connectivity of one panel transport (broadband adapter or GPRS)."""
-
-    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    def __init__(self, transport: str) -> None:
-        self._transport = transport
-        label = "Broadband" if transport == "bba" else transport.upper()
-        self._attr_name = f"Visonic Alarm {label}"
-        self._attr_unique_id = f"visonic_alarm_transport_{transport}"
-
-    @property
-    def is_on(self):
-        info = hub.alarm.connection_detail.get(self._transport) or {}
-        return bool(info.get("is_connected"))
-
-    @property
-    def extra_state_attributes(self):
-        info = hub.alarm.connection_detail.get(self._transport) or {}
-        return {"state": info.get("state")}
-
-
-class VisonicProblem(VisonicPanelBinarySensor):
-    """Active trouble conditions reported by the panel.
-
-    The upstream integration fetched troubles and then discarded them, so
-    conditions like a low sensor battery or the panel dropping off the network
-    were invisible in Home Assistant.
-    """
-
-    _attr_name = "Visonic Alarm Problem"
-    _attr_unique_id = "visonic_alarm_problem"
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
-
-    @property
-    def is_on(self):
-        return bool(hub.alarm.troubles)
-
-    @property
-    def extra_state_attributes(self):
-        troubles = hub.alarm.troubles or []
-        return {
-            "count": len(troubles),
-            "trouble_types": [t.get("trouble_type") for t in troubles],
+PANEL_SENSORS: tuple[VisonicBinarySensorDescription, ...] = (
+    VisonicBinarySensorDescription(
+        # ⚠️ key is not the unique_id; see _UNIQUE_IDS below.
+        key="cloud_connection",
+        translation_key="cloud_connection",
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        value_fn=lambda d: bool(d.connected),
+        attributes_fn=lambda d: {"transports": d.connection_detail},
+    ),
+    VisonicBinarySensorDescription(
+        key="problem",
+        translation_key="problem",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        value_fn=lambda d: bool(d.troubles),
+        attributes_fn=lambda d: {
+            "count": len(d.troubles),
+            "trouble_types": [t.get("trouble_type") for t in d.troubles],
             "troubles": [
                 {
                     "type": t.get("trouble_type"),
@@ -139,193 +65,196 @@ class VisonicProblem(VisonicPanelBinarySensor):
                     "zone_name": t.get("zone_name"),
                     "location": t.get("location"),
                 }
-                for t in troubles
+                for t in d.troubles
             ],
-            "alerts": [a.get("alert_type") for a in (hub.alarm.alerts or [])],
-            # Device-level warnings name the room, which the panel-level trouble
-            # list does not always do.
-            "faulty_devices": {
-                (d.location or str(d.id)): d.fault_types
-                for d in hub.alarm.devices
-                if d.fault_types
-            },
-        }
+            "alerts": [a.get("alert_type") for a in d.alerts],
+            # Device warnings name the room; the panel trouble list may not.
+            "faulty_devices": d.faulty_devices,
+        },
+    ),
+    VisonicBinarySensorDescription(
+        key="triggered",
+        translation_key="triggered",
+        device_class=BinarySensorDeviceClass.SAFETY,
+        value_fn=lambda d: bool(d.alarms),
+        attributes_fn=lambda d: {"alarms": d.alarms},
+    ),
+    VisonicBinarySensorDescription(
+        key="ready",
+        translation_key="ready",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: bool(d.ready),
+    ),
+    VisonicBinarySensorDescription(
+        key="zones_bypassed",
+        translation_key="zones_bypassed",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        value_fn=lambda d: bool(d.bypassed_zones),
+        attributes_fn=lambda d: {
+            "count": len(d.bypassed_zones),
+            "bypassed_zones": [z.display_name for z in d.bypassed_zones],
+            "soak_test_zones": [z.display_name for z in d.soak_zones],
+        },
+    ),
+)
+
+TRANSPORTS = ("bba", "gprs")
+
+# ⚠️ Historical unique_ids. These pin the entity IDs and predate the
+# description-driven rewrite, so they are mapped explicitly rather than derived
+# from `key`. Never change a value here.
+_UNIQUE_IDS = {
+    "cloud_connection": "visonic_alarm_cloud_connection",
+    "problem": "visonic_alarm_problem",
+    "triggered": "visonic_alarm_triggered",
+    "ready": "visonic_alarm_ready",
+    "zones_bypassed": "visonic_alarm_zones_bypassed",
+}
 
 
-class VisonicTriggered(VisonicPanelBinarySensor):
-    """Whether the panel currently reports an active alarm."""
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: VisonicConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
+    """Set up Visonic binary sensors, including new zones as they enroll."""
+    coordinator = entry.runtime_data
 
-    _attr_name = "Visonic Alarm Triggered"
-    _attr_unique_id = "visonic_alarm_triggered"
-    _attr_device_class = BinarySensorDeviceClass.SAFETY
+    entities: list[BinarySensorEntity] = [
+        VisonicPanelBinarySensor(coordinator, description) for description in PANEL_SENSORS
+    ]
+    entities += [VisonicTransportSensor(coordinator, t) for t in TRANSPORTS]
+    async_add_entities(entities)
+
+    known: set[int] = set()
+
+    @callback
+    def _add_new_zones() -> None:
+        """Add entities for zones that appear after setup (dynamic devices)."""
+        new: list[BinarySensorEntity] = []
+        for device in coordinator.data.devices:
+            if device.id is None or device.id in known:
+                continue
+            if device.is_contact:
+                known.add(device.id)
+                new.append(VisonicZoneContact(coordinator, device.id))
+            elif SUBTYPE_MOTION in device.subtype or SUBTYPE_CURTAIN in device.subtype:
+                known.add(device.id)
+                new.append(VisonicZoneMotion(coordinator, device.id))
+        if new:
+            async_add_entities(new)
+
+    _add_new_zones()
+    entry.async_on_unload(coordinator.async_add_listener(_add_new_zones))
+
+
+class VisonicPanelBinarySensor(VisonicEntity, BinarySensorEntity):
+    """A panel-level binary sensor driven by a description."""
+
+    entity_description: VisonicBinarySensorDescription
+
+    def __init__(
+        self,
+        coordinator: VisonicDataUpdateCoordinator,
+        description: VisonicBinarySensorDescription,
+    ) -> None:
+        """Initialise from the description."""
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._attr_unique_id = _UNIQUE_IDS[description.key]
 
     @property
-    def is_on(self):
-        return bool(hub.alarm.alarms)
+    def is_on(self) -> bool | None:
+        """Current value."""
+        return self.entity_description.value_fn(self.coordinator.data)
 
     @property
-    def extra_state_attributes(self):
-        return {"alarms": hub.alarm.alarms or []}
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Description-supplied attributes."""
+        if self.entity_description.attributes_fn is None:
+            return {}
+        return self.entity_description.attributes_fn(self.coordinator.data)
 
 
-class VisonicZonesBypassed(VisonicPanelBinarySensor):
-    """Whether any zone is currently bypassed.
+class VisonicTransportSensor(VisonicEntity, BinarySensorEntity):
+    """Connectivity of one panel transport (broadband adapter or GPRS)."""
 
-    A bypassed zone is excluded from arming, so the system reports "armed" while
-    that door or detector is doing nothing. The panel does **not** raise this as
-    a trouble, so without this entity it is invisible from Home Assistant.
-    """
-
-    _attr_name = "Visonic Alarm Zones Bypassed"
-    _attr_unique_id = "visonic_alarm_zones_bypassed"
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
-    _attr_icon = "mdi:shield-off-outline"
-
-    @staticmethod
-    def _bypassed():
-        return [d for d in hub.alarm.devices if d.bypassed]
-
-    @property
-    def is_on(self):
-        return bool(self._bypassed())
-
-    @property
-    def extra_state_attributes(self):
-        bypassed = self._bypassed()
-        soaked = [d for d in hub.alarm.devices if d.soak]
-        return {
-            "count": len(bypassed),
-            "bypassed_zones": [d.location or d.id for d in bypassed],
-            "soak_test_zones": [d.location or d.id for d in soaked],
-        }
-
-
-class VisonicReady(VisonicPanelBinarySensor):
-    """Whether the system is ready to arm (no open zones)."""
-
-    _attr_name = "Visonic Alarm Ready to Arm"
-    _attr_unique_id = "visonic_alarm_ready"
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
+    def __init__(self, coordinator: VisonicDataUpdateCoordinator, transport: str) -> None:
+        """Initialise for one transport."""
+        super().__init__(coordinator)
+        self._transport = transport
+        self._attr_translation_key = f"transport_{transport}"
+        # ⚠️ Pins binary_sensor.visonic_alarm_broadband / _gprs.
+        self._attr_unique_id = f"visonic_alarm_transport_{transport}"
+
     @property
-    def is_on(self):
-        return bool(hub.alarm.ready)
+    def is_on(self) -> bool:
+        """Whether this transport is connected."""
+        info = self.coordinator.data.connection_detail.get(self._transport) or {}
+        return bool(info.get("is_connected"))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Raw transport state string."""
+        info = self.coordinator.data.connection_detail.get(self._transport) or {}
+        return {"state": info.get("state")}
 
 
-class VisonicZone(VisonicEntity, BinarySensorEntity):
-    """Base for a single enrolled zone device."""
+class VisonicZoneBinarySensor(VisonicZoneEntity, BinarySensorEntity):
+    """Base for a per-zone binary sensor."""
 
-    _attr_should_poll = True
+    _attr_name = None
 
-    def __init__(self, device_id) -> None:
-        self._device_id = device_id
+    def __init__(self, coordinator: VisonicDataUpdateCoordinator, device_id: int) -> None:
+        """Initialise for one enrolled zone."""
+        super().__init__(coordinator, device_id)
+        # ⚠️ Pins binary_sensor.visonic_zone_<id> and the named variants.
         self._attr_unique_id = f"visonic_zone_{device_id}"
-        self._name = None
-        self._location = None
-        self._zone = ""
-        self._subtype = None
-        self._device_type = None
-        self._state = None
-        self._enrollment_id = None
-        self._bypassed = None
-        self._soak = None
-        self._rssi = {}
-        self._faults = []
-
-    @property
-    def name(self):
-        # Most devices have an empty `name`; the room label lives in
-        # traits.location.name and is the only useful identifier.
-        if self._name:
-            return f"Visonic {self._name}"
-        return f"Visonic Zone {self._device_id}"
-
-    @property
-    def is_on(self):
-        return self._state
-
-    @property
-    def extra_state_attributes(self):
-        attrs = {
-            "location": self._location,
-            "zone_type": self._zone,
-            "subtype": self._subtype,
-            "device_type": self._device_type,
-            "device_id": self._device_id,
-            "enrollment_id": self._enrollment_id,
-            "bypassed": self._bypassed,
-            "soak_test": self._soak,
-            "faults": self._faults,
-        }
-        if self._rssi:
-            attrs["signal"] = self._rssi.get("current")
-            attrs["signal_average"] = self._rssi.get("average")
-            attrs["rf_channel"] = self._rssi.get("channel")
-            attrs["repeater"] = self._rssi.get("repeater")
-            # Survey timestamp, not a live reading - see Device.rssi.
-            attrs["signal_surveyed"] = self._rssi.get("last_updated")
-        return attrs
-
-    def _refresh_metadata(self, device):
-        self._zone = device.zone or ""
-        self._location = device.location
-        # Prefer an explicitly set device name; fall back to the room label.
-        # Some devices carry both ("Master Bedroom" vs the panel's abbreviated
-        # "Master Bdrm"), and the explicit name is the better one.
-        self._name = device.name or device.location or None
-        self._subtype = device.subtype
-        self._device_type = device.device_type
-        self._enrollment_id = device.enrollment_id
-        self._bypassed = device.bypassed
-        self._soak = device.soak
-        self._rssi = device.rssi
-        self._faults = device.fault_types
-
-    def update(self):
-        hub.update()
-        device = hub.alarm.get_device_by_id(self._device_id)
-        if device is None:
-            _LOGGER.debug("Visonic device %s not present in update", self._device_id)
-            self._state = None
-            return
-        self._refresh_metadata(device)
-        self._state = self._derive_state(device)
-
-    def _derive_state(self, device):
-        raise NotImplementedError
 
 
-class VisonicZoneContact(VisonicZone):
-    """A door or window contact. Reports real open/closed from the panel."""
+class VisonicZoneContact(VisonicZoneBinarySensor):
+    """A door or window contact, reporting real open/closed state."""
 
     _attr_device_class = BinarySensorDeviceClass.DOOR
 
-    def _derive_state(self, device):
-        state = device.state
-        if state is None:
+    @property
+    def is_on(self) -> bool | None:
+        """True when the contact is open."""
+        device = self.device
+        if device is None or device.state is None:
             return None
-        return state == "opened"
+        return device.state == "opened"
 
 
-class VisonicZoneMotion(VisonicZone):
+class VisonicZoneMotion(VisonicZoneBinarySensor):
     """A motion or curtain detector.
 
-    The cloud API never publishes live motion for these devices — it only
-    reports whether the zone is *participating* in the current arm mode. That is
-    what this entity reflects, so it answers "is this detector currently armed"
-    rather than "is someone moving". Use the Frigate/Zigbee PIRs for real motion.
+    The cloud API never publishes live motion. It only reports whether a zone is
+    *participating* in the current arm mode, which is what this reflects: "is
+    this detector currently armed", not "is someone moving".
     """
 
     _attr_device_class = BinarySensorDeviceClass.RUNNING
 
-    def _derive_state(self, device):
-        alarm_state = hub.alarm.state
-        zone = device.zone or ""
+    @property
+    def is_on(self) -> bool | None:
+        """Whether the zone is active in the current arm mode."""
+        device = self.device
+        if device is None:
+            return None
+        return _zone_active(self.coordinator.data.state, device)
 
-        if alarm_state in ("DISARM", "ARMING"):
-            return "24H" in zone
-        if alarm_state == "HOME":
-            return not any(interior in zone for interior in INTERIOR_ZONES)
-        if alarm_state in ("AWAY", "DISARMING"):
-            return True
-        return None
+
+def _zone_active(alarm_state: str | None, device: VisonicDevice) -> bool | None:
+    """Whether a zone participates in the given arm mode."""
+    zone = device.zone_type
+    if alarm_state in (STATE_DISARM, STATE_ARMING):
+        return ZONE_24H in zone
+    if alarm_state == STATE_HOME:
+        return ZONE_INTERIOR not in zone
+    if alarm_state in (STATE_AWAY, "DISARMING"):
+        return True
+    return None

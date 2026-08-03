@@ -1,0 +1,213 @@
+# Home Assistant Integration Quality Scale — self-assessment.
+#
+# This is a HACS custom integration, so it cannot display an official quality
+# badge (that mechanism is core-only). The rules are still the best available
+# yardstick, so the integration is measured against them honestly here: "done"
+# means genuinely met, "todo" means not yet, and exemptions say why.
+#
+# Core submission is not currently pursued: core caps a new integration's first
+# PR at a single platform with no actions, diagnostics or reauth flow, which
+# would mean shipping a much reduced version there while maintaining the full
+# one here.
+
+rules:
+  # ---------------------------------------------------------------- bronze --
+  action-setup:
+    status: done
+    comment: >-
+      Actions are registered in async_setup, so they exist with no entry loaded.
+      Handlers resolve the target entry and raise ServiceValidationError if it
+      is missing or not loaded.
+  appropriate-polling:
+    status: done
+    comment: >-
+      Two cadences. Arm state and device state poll every 10s, matching what the
+      vendor app does. Troubles, events and the capability endpoints move rarely
+      and poll every 5 minutes, which keeps the request rate down on an API that
+      is rate sensitive.
+  brands:
+    status: done
+    comment: Icon and logo supplied in brand/, submitted to home-assistant/brands.
+  common-modules:
+    status: done
+    comment: >-
+      coordinator.py holds the coordinator, models.py the data model, entity.py
+      the shared entity bases, api.py the transport.
+  config-flow:
+    status: done
+    comment: >-
+      GUI setup with data_description on every field. The app ID is generated
+      when left blank so users are not asked to invent one.
+  config-flow-test-coverage:
+    status: done
+    comment: >-
+      tests/test_config_flow.py covers the happy path, each error branch,
+      duplicate panels, YAML import, reauth and reconfigure including the
+      wrong-panel guard.
+  dependency-transparency:
+    status: done
+    comment: >-
+      No external requirements at all. The API client is vendored in api.py
+      because its upstream (And3rsL/VisonicAlarm2) was archived; vendoring is
+      what allowed the session-expiry bug and the python-dateutil==2.7.3 pin to
+      be fixed.
+  docs-actions:
+    status: done
+    comment: Every action documented in strings.json and the README.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup:
+    status: exempt
+    comment: Polling integration; entities subscribe via CoordinatorEntity only.
+  entity-unique-id:
+    status: done
+    comment: >-
+      Every entity has one. ⚠️ The historical values are load bearing and are
+      preserved verbatim, including the legacy zone sensors whose unique_ids are
+      integers rather than strings.
+  has-entity-name:
+    status: done
+    comment: >-
+      _attr_has_entity_name is set on the shared base; zone entities use
+      _attr_name = None so they take the device name.
+  runtime-data:
+    status: done
+    comment: The coordinator is stored on entry.runtime_data, typed via VisonicConfigEntry.
+  test-before-configure:
+    status: done
+    comment: The config flow authenticates and reads panel_info before creating an entry.
+  test-before-setup:
+    status: done
+    comment: >-
+      _async_setup authenticates and raises ConfigEntryAuthFailed or
+      UpdateFailed as appropriate.
+  unique-config-entry:
+    status: done
+    comment: unique_id is the panel serial; duplicates abort.
+
+  # ---------------------------------------------------------------- silver --
+  action-exceptions:
+    status: done
+    comment: >-
+      ServiceValidationError for user error (wrong code, panel not ready,
+      unsupported feature), HomeAssistantError for panel-side failures.
+  config-entry-unloading:
+    status: done
+    comment: async_unload_entry unloads all platforms; listeners registered via async_on_unload.
+  docs-configuration-parameters:
+    status: done
+    comment: Options flow documented in strings.json and the README.
+  docs-installation-parameters:
+    status: done
+  entity-unavailable:
+    status: done
+    comment: >-
+      Entities follow coordinator availability, and zone entities also go
+      unavailable if the device is unenrolled from the panel.
+  integration-owner:
+    status: done
+  log-when-unavailable:
+    status: done
+    comment: Handled by DataUpdateCoordinator, which logs once and then stays quiet.
+  parallel-updates:
+    status: done
+    comment: >-
+      PARALLEL_UPDATES = 0 on read-only platforms, 1 on the alarm panel and the
+      bypass switches so writes to the panel are serialised.
+  reauthentication-flow:
+    status: done
+    comment: async_step_reauth pre-fills from the existing entry.
+  test-coverage:
+    status: done
+    comment: Above 95%, enforced in CI with --cov-fail-under=95.
+
+  # ------------------------------------------------------------------ gold --
+  devices:
+    status: done
+    comment: >-
+      One device for the panel and one per enrolled zone, linked with
+      via_device. Zone devices carry the enrollment id as their serial number,
+      which is what an installer reads off the panel.
+  diagnostics:
+    status: done
+    comment: >-
+      Full entry diagnostics with credentials, serials and household-identifying
+      fields redacted.
+  discovery:
+    status: exempt
+    comment: >-
+      Cloud accounts cannot be discovered on the network, and the panel serial
+      plus user code cannot be inferred.
+  discovery-update-info:
+    status: exempt
+    comment: No discovery; the cloud hostname is stable.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations:
+    status: done
+    comment: >-
+      The README is explicit that the cloud never publishes live motion, and
+      that the RF survey is static rather than telemetry.
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: done
+    comment: >-
+      Each platform re-checks the device list on every coordinator update and
+      adds entities for newly enrolled zones.
+  entity-category:
+    status: done
+    comment: Diagnostic entities are categorised as such.
+  entity-device-class:
+    status: done
+    comment: >-
+      connectivity, problem, safety, door and running are used where they apply.
+      Motion detectors use RUNNING rather than MOTION on purpose — see below.
+  entity-disabled-by-default:
+    status: exempt
+    comment: >-
+      The entity set is small and every entity is useful; nothing noisy enough
+      to warrant being disabled by default.
+  entity-translations:
+    status: done
+    comment: translation_key on all entities, with names in strings.json.
+  exception-translations:
+    status: done
+    comment: All raised exceptions use translation_domain/translation_key.
+  icon-translations:
+    status: done
+    comment: icons.json covers entities (including state-specific icons) and actions.
+  reconfiguration-flow:
+    status: done
+    comment: >-
+      async_step_reconfigure, guarded by _abort_if_unique_id_mismatch so it
+      cannot be pointed at a different panel.
+  repair-issues:
+    status: done
+    comment: >-
+      Two. One for deprecated YAML configuration, and one raised whenever the
+      panel stops reporting to the cloud — that failure is otherwise invisible,
+      because the cloud keeps serving the last known arm state and the alarm
+      entity looks healthy while being stale.
+  stale-devices:
+    status: done
+    comment: >-
+      Zone entities become unavailable when the device leaves the panel's device
+      list. Devices are not auto-deleted, because a wireless sensor that misses
+      its supervision window can drop out of the list temporarily.
+
+  # -------------------------------------------------------------- platinum --
+  async-dependency:
+    status: done
+    comment: The vendored client is fully async on aiohttp.
+  inject-websession:
+    status: done
+    comment: >-
+      The client takes a ClientSession; the coordinator passes
+      async_get_clientsession(hass).
+  strict-typing:
+    status: done
+    comment: mypy strict over the integration, enforced in CI.

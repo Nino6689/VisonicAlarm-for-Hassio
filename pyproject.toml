@@ -1,0 +1,49 @@
+[project]
+name = "visonicalarm-hass"
+version = "4.0.0"
+description = "Visonic Alarm integration for Home Assistant"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The integration lives at custom_components/, which is not an installed
+# package; put the repo root on sys.path so tests import it in CI too.
+pythonpath = ["."]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "D"]
+ignore = ["E501", "D203", "D213"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D100", "D101", "D102", "D103", "B011"]
+
+[tool.mypy]
+# Home Assistant's own source uses 3.14 syntax, so mypy must parse as 3.14
+# even though the integration itself targets 3.13.
+python_version = "3.14"
+strict = true
+warn_unused_configs = true
+# Home Assistant and the test harness are not fully typed; only this
+# integration's own code is held to strict typing.
+follow_imports = "silent"
+ignore_missing_imports = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
+warn_unused_ignores = false
+
+# HA does not declare __all__ on every module and strict mode disables implicit
+# re-export. The imports are correct and used throughout core itself.
+[[tool.mypy.overrides]]
+module = "homeassistant.*"
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false

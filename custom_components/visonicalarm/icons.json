@@ -1,0 +1,51 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "cloud_connection": {
+        "default": "mdi:cloud-check-variant",
+        "state": { "off": "mdi:cloud-off-outline" }
+      },
+      "problem": {
+        "default": "mdi:alert-circle-outline",
+        "state": { "off": "mdi:check-circle-outline" }
+      },
+      "triggered": {
+        "default": "mdi:alarm-light",
+        "state": { "off": "mdi:alarm-light-outline" }
+      },
+      "ready": {
+        "default": "mdi:shield-check",
+        "state": { "off": "mdi:shield-alert-outline" }
+      },
+      "zones_bypassed": {
+        "default": "mdi:shield-off-outline",
+        "state": { "off": "mdi:shield-check-outline" }
+      },
+      "transport_bba": {
+        "default": "mdi:ethernet",
+        "state": { "off": "mdi:ethernet-off" }
+      },
+      "transport_gprs": {
+        "default": "mdi:signal-cellular-3",
+        "state": { "off": "mdi:signal-cellular-outline" }
+      }
+    },
+    "sensor": {
+      "trouble_count": { "default": "mdi:alert-circle-outline" },
+      "last_event": { "default": "mdi:history" },
+      "panel_info": { "default": "mdi:shield-home-outline" }
+    },
+    "switch": {
+      "bypass": {
+        "default": "mdi:shield-off-outline",
+        "state": { "off": "mdi:shield-check-outline" }
+      }
+    }
+  },
+  "services": {
+    "refresh": "mdi:refresh",
+    "sound_siren": "mdi:bullhorn",
+    "silence_siren": "mdi:bullhorn-outline",
+    "set_zone_name": "mdi:rename-box"
+  }
+}

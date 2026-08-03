@@ -1,0 +1,211 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to your Visonic alarm",
+        "description": "Sign in with the same account you use in the Visonic GO or Connect Alarm app.",
+        "data": {
+          "host": "Server",
+          "user_email": "Email address",
+          "user_password": "Password",
+          "panel_id": "Panel serial",
+          "user_code": "User code (PIN)",
+          "app_id": "App ID"
+        },
+        "data_description": {
+          "host": "The monitoring server your account lives on. Leave the default unless your provider told you otherwise.",
+          "panel_id": "The panel serial shown in the app, on the panel label, or in your welcome email.",
+          "user_code": "The PIN you use to disarm the alarm at the keypad.",
+          "app_id": "Leave blank and one will be generated. Only set this if you need to reuse an existing client identifier."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate {panel}",
+        "description": "Your Visonic credentials were rejected. Enter them again to reconnect.",
+        "data": {
+          "host": "Server",
+          "user_email": "Email address",
+          "user_password": "Password",
+          "panel_id": "Panel serial",
+          "user_code": "User code (PIN)",
+          "app_id": "App ID"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure your Visonic alarm",
+        "description": "Change how Home Assistant connects to the panel.",
+        "data": {
+          "host": "Server",
+          "user_email": "Email address",
+          "user_password": "Password",
+          "panel_id": "Panel serial",
+          "user_code": "User code (PIN)",
+          "app_id": "App ID"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the Visonic server. Check the server address and your internet connection.",
+      "invalid_auth": "Those credentials were rejected. Check the email, password, panel serial and user code.",
+      "unknown": "Unexpected error. Check the Home Assistant log for details."
+    },
+    "abort": {
+      "already_configured": "This panel is already set up.",
+      "cannot_connect": "Could not reach the Visonic server, so the YAML configuration was not imported.",
+      "invalid_auth": "The credentials in your YAML configuration were rejected, so it was not imported.",
+      "unknown": "Unexpected error importing the YAML configuration.",
+      "reauth_successful": "Reconnected successfully.",
+      "reconfigure_successful": "Settings updated.",
+      "wrong_panel": "Those credentials are for a different panel. Reconfiguring must keep the same panel."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Visonic Alarm options",
+        "data": {
+          "no_pin_required": "Arm and disarm without entering the code",
+          "event_hour_offset": "Event timestamp offset (hours)"
+        },
+        "data_description": {
+          "no_pin_required": "When off, Home Assistant asks for your user code before arming or disarming.",
+          "event_hour_offset": "Shifts event log timestamps if the panel clock is in a different time zone."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "cloud_connection": {
+        "name": "Cloud connection"
+      },
+      "problem": {
+        "name": "Problem"
+      },
+      "triggered": {
+        "name": "Triggered"
+      },
+      "ready": {
+        "name": "Ready to arm"
+      },
+      "zones_bypassed": {
+        "name": "Zones bypassed"
+      },
+      "transport_bba": {
+        "name": "Broadband"
+      },
+      "transport_gprs": {
+        "name": "GPRS"
+      }
+    },
+    "sensor": {
+      "trouble_count": {
+        "name": "Trouble count"
+      },
+      "last_event": {
+        "name": "Last event"
+      },
+      "panel_info": {
+        "name": "Panel"
+      }
+    },
+    "switch": {
+      "bypass": {
+        "name": "Bypass"
+      }
+    }
+  },
+  "services": {
+    "refresh": {
+      "name": "Refresh",
+      "description": "Polls the panel immediately instead of waiting for the next scheduled update.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Panel",
+          "description": "The Visonic panel to refresh."
+        }
+      }
+    },
+    "sound_siren": {
+      "name": "Sound siren",
+      "description": "Sounds the siren as a panic alarm. This is loud and immediate.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Panel",
+          "description": "The Visonic panel whose siren should sound."
+        }
+      }
+    },
+    "silence_siren": {
+      "name": "Silence siren",
+      "description": "Silences a sounding siren.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Panel",
+          "description": "The Visonic panel whose siren should be silenced."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "Which sounders to silence. Defaults to all."
+        }
+      }
+    },
+    "set_zone_name": {
+      "name": "Set zone name",
+      "description": "Renames a zone on the panel itself, not just in Home Assistant.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Panel",
+          "description": "The Visonic panel to update."
+        },
+        "zone": {
+          "name": "Zone number",
+          "description": "The panel zone number, shown as the zone attribute on each zone entity."
+        },
+        "name": {
+          "name": "Name",
+          "description": "The new zone name."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "Visonic rejected the stored credentials."
+    },
+    "cannot_connect": {
+      "message": "Could not reach the Visonic server: {error}"
+    },
+    "invalid_code": {
+      "message": "The code you entered is not correct."
+    },
+    "not_ready": {
+      "message": "The alarm is not ready to arm. There may be a door or window open."
+    },
+    "command_failed": {
+      "message": "The panel rejected the command: {error}"
+    },
+    "zone_unavailable": {
+      "message": "That zone is no longer enrolled on the panel."
+    },
+    "entry_not_found": {
+      "message": "No Visonic panel found for {target}."
+    },
+    "entry_not_loaded": {
+      "message": "The Visonic panel {target} is not loaded."
+    },
+    "feature_unsupported": {
+      "message": "This panel does not support {feature}."
+    }
+  },
+  "issues": {
+    "yaml_deprecated": {
+      "title": "Visonic Alarm YAML configuration is deprecated",
+      "description": "Visonic Alarm is now set up from the user interface. Your existing YAML configuration has been imported, and all entity IDs were preserved.\n\nRemove the `visonicalarm:` block from `configuration.yaml` and restart Home Assistant to clear this message. Your credentials are now stored in the config entry, so they no longer need to live in `secrets.yaml` for this integration."
+    },
+    "panel_offline": {
+      "title": "{panel} is not reporting to the Visonic cloud",
+      "description": "The alarm panel has stopped communicating with the monitoring server. The cloud keeps serving the **last known** arm state, so the alarm entity will look normal while being out of date — any automation that trusts it is now working from stale data.\n\nCheck the panel's broadband or GPRS connection. If the panel has an IP address but still cannot connect, confirm which server address it is configured to report to."
+    }
+  }
+}
