@@ -1,3 +1,15 @@
+> **Maintained fork.** The upstream repository
+> [And3rsL/VisonicAlarm-for-Hassio](https://github.com/And3rsL/VisonicAlarm-for-Hassio)
+> was archived in December 2025 (last release 3.3.6). This fork exists to keep the
+> integration working against current Home Assistant releases. The `visonicalarm`
+> domain and all entity IDs are unchanged, so it is a drop-in replacement.
+>
+> Known issues carried over from upstream:
+> - `python-dateutil` is hard-pinned to `2.7.3`, which downgrades the version shipped
+>   inside the Home Assistant container. Needs testing against a modern release.
+> - The API session can return HTTP 401 after a period of uptime; a Home Assistant
+>   core restart recovers it.
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 <br><a href="https://www.buymeacoffee.com/4nd3rs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-black.png" width="150px" height="35px" alt="Buy Me A Coffee" style="height: 35px !important;width: 150px !important;" ></a>
 
