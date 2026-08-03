@@ -1,15 +1,19 @@
 {
   "domain": "visonicalarm",
   "name": "Visonic Alarm",
-  "codeowners": ["@Nino6689"],
+  "codeowners": [
+    "@Nino6689"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/Nino6689/VisonicAlarm-for-Hassio",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Nino6689/VisonicAlarm-for-Hassio/issues",
-  "loggers": ["custom_components.visonicalarm"],
+  "loggers": [
+    "custom_components.visonicalarm"
+  ],
   "quality_scale": "platinum",
   "requirements": [],
-  "version": "4.0.0"
+  "version": "4.0.1"
 }

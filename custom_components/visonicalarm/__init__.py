@@ -66,6 +66,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     async_setup_services(hass)
 
     if DOMAIN not in config:
+        # The notice tells the user to delete the YAML block, so it has to clear
+        # itself once they have. Otherwise it nags forever after they comply.
+        ir.async_delete_issue(hass, DOMAIN, ISSUE_YAML_DEPRECATED)
         return True
 
     hass.async_create_task(

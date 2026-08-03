@@ -3,50 +3,60 @@
     "step": {
       "user": {
         "title": "Connect to your Visonic alarm",
-        "description": "Sign in with the same account you use in the Visonic GO or Connect Alarm app.",
+        "description": "This connects through the **same cloud service as the Visonic GO or Connect Alarm app** — not directly to the panel. You need a working app login first: if you cannot sign in to the app, this will not work either.\n\nTwo different things are needed, and they are easy to mix up:\n\n- your **app account** (email + password), which you chose when you registered\n- your **panel** (serial + keypad PIN), which identifies the alarm itself\n\nEverything below can be found in the app under the panel settings, or in the welcome email from whoever installed or monitors your alarm.",
         "data": {
-          "host": "Server",
-          "user_email": "Email address",
-          "user_password": "Password",
-          "panel_id": "Panel serial",
-          "user_code": "User code (PIN)",
-          "app_id": "App ID"
+          "host": "Monitoring server",
+          "user_email": "App account email",
+          "user_password": "App account password",
+          "panel_id": "Panel serial number",
+          "user_code": "Keypad PIN",
+          "app_id": "App ID (optional)"
         },
         "data_description": {
-          "host": "The monitoring server your account lives on. Leave the default unless your provider told you otherwise.",
-          "panel_id": "The panel serial shown in the app, on the panel label, or in your welcome email.",
-          "user_code": "The PIN you use to disarm the alarm at the keypad.",
-          "app_id": "Leave blank and one will be generated. Only set this if you need to reuse an existing client identifier."
+          "host": "The server your alarm reports to. Most UK and European panels use the default, visonic.tycomonitor.com. If your alarm is professionally monitored, your provider may use a different one — it is shown in the app's About or Server screen.",
+          "user_email": "The email you sign in to the Visonic GO or Connect Alarm app with. Not an installer or engineer account.",
+          "user_password": "The password for that app account. This is not your keypad PIN.",
+          "panel_id": "A short code such as 1D0B0A, usually 6 characters. Find it in the app under panel settings, on the sticker inside the panel, or in your welcome email. Sometimes called the panel ID or panel serial.",
+          "user_code": "The PIN you type on the keypad to disarm the alarm, normally 4 digits. Use your own user code, not the installer or engineer code — the integration arms and disarms as that user, so it is the one that shows up in the event log.",
+          "app_id": "Leave this blank. One is generated for you. Only fill it in if you are moving an existing setup and need to keep the same client identifier."
         }
       },
       "reauth_confirm": {
         "title": "Re-authenticate {panel}",
-        "description": "Your Visonic credentials were rejected. Enter them again to reconnect.",
+        "description": "Visonic rejected the stored credentials for **{panel}**.\n\nThis usually means the app account password was changed, or the keypad PIN was changed on the panel. Enter the current details to reconnect.",
         "data": {
-          "host": "Server",
-          "user_email": "Email address",
-          "user_password": "Password",
-          "panel_id": "Panel serial",
-          "user_code": "User code (PIN)",
-          "app_id": "App ID"
+          "host": "Monitoring server",
+          "user_email": "App account email",
+          "user_password": "App account password",
+          "panel_id": "Panel serial number",
+          "user_code": "Keypad PIN",
+          "app_id": "App ID (optional)"
+        },
+        "data_description": {
+          "user_password": "The password for your Visonic GO or Connect Alarm account, not your keypad PIN.",
+          "user_code": "The PIN you type on the keypad to disarm."
         }
       },
       "reconfigure": {
         "title": "Reconfigure your Visonic alarm",
-        "description": "Change how Home Assistant connects to the panel.",
+        "description": "Change how Home Assistant reaches the panel.\n\nThis has to stay pointed at the **same panel** — the serial number cannot be changed here. To add a different alarm, add a second integration instead.",
         "data": {
-          "host": "Server",
-          "user_email": "Email address",
-          "user_password": "Password",
-          "panel_id": "Panel serial",
-          "user_code": "User code (PIN)",
-          "app_id": "App ID"
+          "host": "Monitoring server",
+          "user_email": "App account email",
+          "user_password": "App account password",
+          "panel_id": "Panel serial number",
+          "user_code": "Keypad PIN",
+          "app_id": "App ID (optional)"
+        },
+        "data_description": {
+          "host": "Only change this if your monitoring provider has moved you to a different server.",
+          "user_code": "The PIN you type on the keypad to disarm."
         }
       }
     },
     "error": {
-      "cannot_connect": "Could not reach the Visonic server. Check the server address and your internet connection.",
-      "invalid_auth": "Those credentials were rejected. Check the email, password, panel serial and user code.",
+      "cannot_connect": "Could not reach that server. Check the monitoring server address is spelled correctly and that Home Assistant has internet access.",
+      "invalid_auth": "Visonic rejected those details. The most common causes are using the keypad PIN as the account password, a mistyped panel serial, or an installer code instead of your own user code. Confirm the same details work in the Visonic GO or Connect Alarm app.",
       "unknown": "Unexpected error. Check the Home Assistant log for details."
     },
     "abort": {
@@ -63,13 +73,14 @@
     "step": {
       "init": {
         "title": "Visonic Alarm options",
+        "description": "These only affect Home Assistant. Nothing here is written to the panel.",
         "data": {
           "no_pin_required": "Arm and disarm without entering the code",
           "event_hour_offset": "Event timestamp offset (hours)"
         },
         "data_description": {
-          "no_pin_required": "When off, Home Assistant asks for your user code before arming or disarming.",
-          "event_hour_offset": "Shifts event log timestamps if the panel clock is in a different time zone."
+          "no_pin_required": "Turn this on to skip the code prompt in Home Assistant, so dashboard buttons and automations can arm or disarm directly. Your keypad PIN is still sent to the panel either way — this only controls whether Home Assistant asks you to type it first. Leave it off if anyone who can reach your dashboard should not be able to disarm the alarm.",
+          "event_hour_offset": "Only needed if the times on the Last event sensor look wrong, which happens when the panel's clock is set to a different time zone. Enter the number of hours to shift them by, positive or negative."
         }
       }
     }
