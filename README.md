@@ -51,7 +51,10 @@ never implemented (`/feature_set`, `/users`, `/panels`, `/cameras`,
 | `sensor.visonic_alarm_last_event` | Last panel event with user and timestamp. |
 | `sensor.visonic_alarm_panel` | Model, alias, features, users, REST version. |
 
-All entities are now grouped under one panel device.
+**Not** grouped under a panel device: this integration is configured from YAML,
+so its entities have no config entry, and Home Assistant only creates device
+registry entries for entities that do. Grouping needs a config-entry migration,
+which is tracked separately.
 
 **Compatibility:** `alarm_control_panel.visonic_alarm` and the existing
 `sensor.visonicalarm_*` zone entities keep their exact entity IDs — their
