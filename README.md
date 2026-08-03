@@ -4,11 +4,64 @@
 > integration working against current Home Assistant releases. The `visonicalarm`
 > domain and all entity IDs are unchanged, so it is a drop-in replacement.
 >
-> Known issues carried over from upstream:
-> - `python-dateutil` is hard-pinned to `2.7.3`, which downgrades the version shipped
->   inside the Home Assistant container. Needs testing against a modern release.
-> - The API session can return HTTP 401 after a period of uptime; a Home Assistant
->   core restart recovers it.
+## What this fork changes (3.4.0)
+
+The `visonicalarm2` library is now **vendored** as `visonic_api.py`. Its upstream
+repository was archived on the same day as this one, so depending on it meant
+depending on two dead projects and it could not be fixed in place.
+
+**Fixed**
+
+- **Stale sessions now self-heal** (upstream [VisonicAlarm2#16][i16]). The old
+  `System.is_token_valid` was a `@property` that returned the *bound method*
+  `API.is_logged_in` without calling it, so `is_token_valid == False` was always
+  False and the reconnect branch was dead code. Sessions could only be recovered
+  with a full Home Assistant restart. Requests now retry once after
+  re-authenticating.
+- **Auth failures are actually detected.** The old request helper caught
+  `HTTPError`, logged it and returned `None`, making a 401 indistinguishable from
+  an empty response. Errors now propagate. Note PowerManage returns **400**, not
+  401, for an unrecognised *session* token — that is handled explicitly.
+- **`python-dateutil==2.7.3` pin removed.** That 2018 pin won inside the Home
+  Assistant container and downgraded dateutil for every other integration.
+  Timestamps now use `datetime.fromisoformat`. The integration has **no**
+  external requirements at all.
+- **The session token is no longer published as an entity attribute.** It was
+  being written to the states API, the recorder database and any dashboard
+  showing the panel.
+- **Removed the leaking global event listener.** The panel registered an
+  `EVENT_STATE_CHANGED` listener it never unregistered, which produced ~250
+  errors on every shutdown. Arm-state changes are detected inside the entity's
+  own update instead.
+
+**Added** — the integration previously fetched troubles, alerts and alarms and
+then discarded them. They are now surfaced, along with endpoints the library
+never implemented (`/feature_set`, `/users`, `/panels`, `/cameras`,
+`/smart_devices`):
+
+| Entity | Why it matters |
+| --- | --- |
+| `binary_sensor.visonic_alarm_cloud_connection` | Whether the cloud can reach the panel. When off, every other Visonic entity is showing cached data. |
+| `binary_sensor.visonic_alarm_problem` | Active troubles, with type/zone/location attributes. |
+| `binary_sensor.visonic_alarm_triggered` | Active alarms. |
+| `binary_sensor.visonic_alarm_ready_to_arm` | Whether arming would succeed. |
+| `binary_sensor.visonic_alarm_broadband` / `_gprs` | Per-transport connectivity. |
+| `binary_sensor.visonic_zone_*` | Zones with real device classes. |
+| `sensor.visonic_alarm_trouble_count` | Numeric, so it graphs and alerts. |
+| `sensor.visonic_alarm_last_event` | Last panel event with user and timestamp. |
+| `sensor.visonic_alarm_panel` | Model, alias, features, users, REST version. |
+
+All entities are now grouped under one panel device.
+
+**Compatibility:** `alarm_control_panel.visonic_alarm` and the existing
+`sensor.visonicalarm_*` zone entities keep their exact entity IDs — their
+`unique_id` values are unchanged. The YAML configuration schema is unchanged.
+
+> ⚠️ Motion zones: the cloud API never publishes live motion. It only reports
+> whether a zone participates in the current arm mode, which is what the motion
+> entities reflect. Use real PIRs if you need motion detection.
+
+[i16]: https://github.com/And3rsL/VisonicAlarm2/issues/16
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 <br><a href="https://www.buymeacoffee.com/4nd3rs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-black.png" width="150px" height="35px" alt="Buy Me A Coffee" style="height: 35px !important;width: 150px !important;" ></a>
