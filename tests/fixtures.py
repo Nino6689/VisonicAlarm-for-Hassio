@@ -21,7 +21,7 @@ STATUS: dict[str, Any] = {
 }
 
 PANEL_INFO: dict[str, Any] = {
-    "serial": "1D0B0A",
+    "serial": "ABC123",
     "model": "PowerMaster 360R",
     "manufacturer": "Visonic",
     "current_user": "master_user",
@@ -114,7 +114,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 828776,
-        "enrollment_id": "120-0918",
+        "enrollment_id": "120-0003",
         "device_number": 1,
         "device_type": "ZONE",
         "zone_type": "HOME_DELAY",
@@ -142,7 +142,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 828777,
-        "enrollment_id": "104-5058",
+        "enrollment_id": "104-0002",
         "device_number": 2,
         "device_type": "ZONE",
         "zone_type": "DELAY_1",
@@ -170,7 +170,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 828778,
-        "enrollment_id": "120-1823",
+        "enrollment_id": "120-0004",
         "device_number": 3,
         "device_type": "ZONE",
         "zone_type": "INTERIOR",
@@ -198,7 +198,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 828779,
-        "enrollment_id": "371-3367",
+        "enrollment_id": "371-0010",
         "device_number": 1,
         "device_type": "WIRELESS_COMMANDER",
         "zone_type": None,
@@ -221,7 +221,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 828780,
-        "enrollment_id": "412-3709",
+        "enrollment_id": "412-0011",
         "device_number": 1,
         "device_type": "WL_SIREN",
         "zone_type": None,
@@ -244,7 +244,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 6148585,
-        "enrollment_id": "104-2984",
+        "enrollment_id": "104-0001",
         "device_number": 4,
         "device_type": "ZONE",
         "zone_type": "INTERIOR_DELAY",
@@ -272,7 +272,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 6148586,
-        "enrollment_id": "120-2904",
+        "enrollment_id": "120-0005",
         "device_number": 5,
         "device_type": "ZONE",
         "zone_type": "HOME_DELAY",
@@ -303,7 +303,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 6149210,
-        "enrollment_id": "120-3045",
+        "enrollment_id": "120-0006",
         "device_number": 6,
         "device_type": "ZONE",
         "zone_type": "HOME_DELAY",
@@ -331,7 +331,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 6151684,
-        "enrollment_id": "120-3114",
+        "enrollment_id": "120-0007",
         "device_number": 7,
         "device_type": "ZONE",
         "zone_type": "INTERIOR",
@@ -359,7 +359,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 6152435,
-        "enrollment_id": "120-7837",
+        "enrollment_id": "120-0009",
         "device_number": 8,
         "device_type": "ZONE",
         "zone_type": "INTERIOR",
@@ -387,7 +387,7 @@ DEVICES: list[dict[str, Any]] = [
     },
     {
         "id": 121983908,
-        "enrollment_id": "120-5577",
+        "enrollment_id": "120-0008",
         "device_number": 9,
         "device_type": "ZONE",
         "zone_type": "INTERIOR_DELAY",
@@ -1084,7 +1084,7 @@ USERS: dict[str, Any] = {
 
 PANELS: list[dict[str, Any]] = [
     {
-        "panel_serial": "1D0B0A",
+        "panel_serial": "ABC123",
         "panel_model": "PowerMaster 360R",
         "alias": "Example House",
         "role": "MASTER_USER",

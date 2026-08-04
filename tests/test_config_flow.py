@@ -33,7 +33,7 @@ USER_INPUT: dict[str, Any] = {
     "host": "visonic.example.com",
     CONF_USER_EMAIL: "user@example.com",
     CONF_USER_PASSWORD: "hunter2",
-    CONF_PANEL_ID: "1D0B0A",
+    CONF_PANEL_ID: "ABC123",
     CONF_USER_CODE: "1234",
     CONF_APP_ID: "",
 }
@@ -51,7 +51,7 @@ async def test_user_flow_creates_entry(
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "PowerMaster 360R"
-    assert result["result"].unique_id == "1D0B0A"
+    assert result["result"].unique_id == "ABC123"
     # A blank app id is filled in rather than rejected.
     assert result["data"][CONF_APP_ID]
 

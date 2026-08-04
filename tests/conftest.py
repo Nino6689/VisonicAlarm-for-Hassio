@@ -41,7 +41,7 @@ ENTRY_DATA: dict[str, Any] = {
     CONF_USER_CODE: "1234",
     CONF_USER_EMAIL: "user@example.com",
     CONF_USER_PASSWORD: "hunter2",
-    CONF_PANEL_ID: "1D0B0A",
+    CONF_PANEL_ID: "ABC123",
 }
 
 
@@ -154,7 +154,7 @@ def mock_entry(hass: HomeAssistant) -> MockConfigEntry:
     entry = MockConfigEntry(
         domain=DOMAIN,
         data=ENTRY_DATA,
-        unique_id="1D0B0A",
+        unique_id="ABC123",
         title="PowerMaster 360R",
     )
     entry.add_to_hass(hass)

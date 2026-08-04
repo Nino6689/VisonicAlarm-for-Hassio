@@ -33,7 +33,7 @@ async def test_entity_ids_are_preserved(
         e.unique_id: e.entity_id for e in registry.entities.values() if e.platform == DOMAIN
     }
 
-    assert "1D0B0A" in by_unique  # the alarm panel
+    assert "ABC123" in by_unique  # the alarm panel
     assert "visonic_alarm_cloud_connection" in by_unique
     assert "visonic_alarm_problem" in by_unique
     assert "visonic_alarm_transport_bba" in by_unique

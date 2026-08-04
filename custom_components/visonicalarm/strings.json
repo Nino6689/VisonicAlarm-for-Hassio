@@ -16,7 +16,7 @@
           "host": "The server your alarm reports to. Most UK and European panels use the default, visonic.tycomonitor.com. If your alarm is professionally monitored, your provider may use a different one — it is shown in the app's About or Server screen.",
           "user_email": "The email you sign in to the Visonic GO or Connect Alarm app with. Not an installer or engineer account.",
           "user_password": "The password for that app account. This is not your keypad PIN.",
-          "panel_id": "A short code such as 1D0B0A, usually 6 characters. Find it in the app under panel settings, on the sticker inside the panel, or in your welcome email. Sometimes called the panel ID or panel serial.",
+          "panel_id": "A short code such as ABC123, usually 6 characters. Find it in the app under panel settings, on the sticker inside the panel, or in your welcome email. Sometimes called the panel ID or panel serial.",
           "user_code": "The PIN you type on the keypad to disarm the alarm, normally 4 digits. Use your own user code, not the installer or engineer code — the integration arms and disarms as that user, so it is the one that shows up in the event log.",
           "app_id": "Leave this blank. One is generated for you. Only fill it in if you are moving an existing setup and need to keep the same client identifier."
         }

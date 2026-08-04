@@ -94,7 +94,7 @@ def _client(hass: HomeAssistant, server) -> VisonicApi:
         "1234",
         "user@example.com",
         "pw",
-        "1D0B0A",
+        "ABC123",
     )
     return api
 

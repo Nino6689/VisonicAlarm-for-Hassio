@@ -101,7 +101,7 @@ class VisonicDevice:
 
     @property
     def enrollment_id(self) -> str | None:
-        """Enrollment code, e.g. ``120-0918``. The prefix encodes device type."""
+        """Enrollment code, e.g. ``120-0001``. The prefix encodes device type."""
         return self._raw.get("enrollment_id")
 
     @property

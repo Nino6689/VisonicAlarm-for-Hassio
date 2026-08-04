@@ -16,7 +16,7 @@ def _device(**overrides) -> VisonicDevice:
         "device_type": "ZONE",
         "zone_type": "HOME_DELAY",
         "subtype": "MOTION",
-        "enrollment_id": "120-2904",
+        "enrollment_id": "120-0001",
         "name": "",
         "warnings": None,
         "partitions": [1],
