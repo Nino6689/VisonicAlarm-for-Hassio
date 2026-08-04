@@ -168,12 +168,19 @@ for the next poll.
 
 ## Known limitations
 
-All properties of the cloud API, not bugs:
+All properties of the panel and cloud API, not bugs:
 
 - **Motion detectors never report live motion.** The cloud only publishes
   whether a zone *participates* in the current arm mode, which is what the
   motion entities reflect — "is this detector currently armed", not "is someone
   moving". Use real PIR sensors if you need motion detection.
+
+  This is not a cloud limitation you can work around by going local. On
+  PowerMaster panels the **sensors themselves stop transmitting to the panel
+  while it is disarmed**, to save battery — so nothing downstream can know. The
+  [Homey PowerMax app](https://github.com/nlrb/com.visonic.powermax), which
+  reads the panel over a direct serial link rather than the cloud, documents
+  exactly the same constraint.
 - **Signal strength is a stored survey, not telemetry.** Every device reports the
   same enrollment-era `last_updated`, so it is exposed as `signal_surveyed`
   rather than dressed up as a live reading.
@@ -331,6 +338,43 @@ The [quality scale self-assessment](custom_components/visonicalarm/quality_scale
 records how each rule is met, and says so honestly where a rule is exempt.
 
 ---
+
+## Related projects
+
+There are two fundamentally different ways to reach a Visonic panel, and the
+right one depends on whether you can get a cable to it.
+
+### Cloud (what this does)
+
+Talks to the PowerManage server. **No extra hardware**, works from anywhere, but
+needs internet and depends on the panel keeping its own link to the cloud.
+
+| Project | Notes |
+| --- | --- |
+| **This fork** | UI setup, zone bypass, siren actions, panel health, platinum quality scale |
+| [nitaybz/visonic-cloud](https://github.com/nitaybz/visonic-cloud) | Cloud integration with a similar architecture |
+| [msp1974/VisonicAlarm-for-Hassio](https://github.com/msp1974/VisonicAlarm-for-Hassio) | Uses [pyvisonicalarm](https://github.com/msp1974/pyvisonicalarm), which documents the write API |
+| [And3rsL/VisonicAlarm-for-Hassio](https://github.com/And3rsL/VisonicAlarm-for-Hassio) | The original. Archived December 2025. |
+
+### Local (serial / TTL)
+
+Speaks the Powerlink protocol straight to the panel. **Real time**, no internet
+needed, and it can read zone names and settings the cloud never exposes — but it
+needs an RS-232 or TTL interface plus a serial-to-Ethernet adapter physically
+wired to the panel.
+
+| Project | Platform |
+| --- | --- |
+| [davesmeghead/visonic](https://github.com/davesmeghead/visonic) | Home Assistant. The mature local option. |
+| [nlrb/com.visonic.powermax](https://github.com/nlrb/com.visonic.powermax) | Homey |
+
+If you already have the interface hardware, the local route gives you more and
+does not care whether Visonic's servers are up. If you do not, this integration
+needs nothing but your app login.
+
+> Not related: **Homely** is a separate Norwegian alarm company with its own
+> hardware and API. If you landed here looking for that, see
+> [ludvikroed/homely-integration](https://github.com/ludvikroed/homely-integration).
 
 ## Credits
 
