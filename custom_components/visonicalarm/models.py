@@ -83,8 +83,19 @@ class VisonicDevice:
         An explicitly set name wins over the room label, because the panel
         abbreviates its own locations ("Master Bdrm" vs a device named
         "Master Bedroom").
+
+        Devices that occupy no zone — keypads, sirens, the PowerLink — carry no
+        location, so falling through to "Zone <id>" mislabels them. They get a
+        readable label derived from their subtype instead.
         """
-        return self.name or self.location or f"Zone {self.id}"
+        if self.name:
+            return self.name
+        if self.location:
+            return self.location
+        if self.is_zone:
+            return f"Zone {self.id}"
+        subtype = (self.subtype or "device").replace("_", " ").title()
+        return f"{subtype} {self.id}"
 
     @property
     def zone_number(self) -> int | None:

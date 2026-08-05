@@ -1,6 +1,6 @@
 [project]
 name = "visonicalarm-hass"
-version = "4.0.3"
+version = "4.0.4"
 description = "Visonic Alarm integration for Home Assistant"
 requires-python = ">=3.13"
 

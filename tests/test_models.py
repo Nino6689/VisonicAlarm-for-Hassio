@@ -134,3 +134,24 @@ def test_connection_detail_ignores_malformed_entries() -> None:
     """The status payload is not always shaped as expected."""
     data = VisonicData(status={"connected_status": {"bba": {"is_connected": True}, "gprs": None}})
     assert data.connection_detail == {"bba": {"is_connected": True, "state": None}}
+
+
+def test_non_zone_device_label_is_not_called_a_zone() -> None:
+    """Keypads, sirens and the PowerLink occupy no zone.
+
+    Regression: a proximity keypad with a LOW_BATTERY warning surfaced as
+    "Zone 828779", which reads as an alarm zone that does not exist.
+    """
+    keypad = VisonicDevice(
+        {
+            "id": 828779,
+            "subtype": "PROXIMITY_KEYPAD",
+            "device_type": "WIRELESS_COMMANDER",
+            "traits": {},
+        }
+    )
+    assert keypad.is_zone is False
+    assert keypad.display_name == "Proximity Keypad 828779"
+
+    zone = VisonicDevice({"id": 6148586, "subtype": "MOTION", "device_type": "ZONE", "traits": {}})
+    assert zone.display_name == "Zone 6148586"
