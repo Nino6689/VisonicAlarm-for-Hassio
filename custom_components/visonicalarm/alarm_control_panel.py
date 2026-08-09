@@ -128,11 +128,12 @@ class VisonicAlarmPanel(VisonicEntity, AlarmControlPanelEntity):
             "model": data.model,
             "alias": data.alias,
             "ready": data.ready,
-            "connected": data.connected,
+            # Derived so a routine check-in gap does not rewrite this entity
+            # (and a recorder row with it) every ~90 seconds.
+            "connected": data.is_cloud_connected,
             "alarm": data.alarm_active,
             "trouble_count": len(data.troubles),
             "trouble_types": [t.get("trouble_type") for t in data.troubles],
-            "transports": data.connection_detail,
             "changed_timestamp": event.timestamp if event else None,
         }
 

@@ -155,3 +155,41 @@ def test_non_zone_device_label_is_not_called_a_zone() -> None:
 
     zone = VisonicDevice({"id": 6148586, "subtype": "MOTION", "device_type": "ZONE", "traits": {}})
     assert zone.display_name == "Zone 6148586"
+
+
+def _data_with(bba: dict, connected: bool) -> VisonicData:
+    d = VisonicData()
+    d.connected = connected
+    d.status = {"connected_status": {"bba": bba}}
+    return d
+
+
+def test_check_in_gap_is_not_reported_as_an_outage() -> None:
+    """A PowerMaster on broadband checks in periodically.
+
+    Between check-ins the cloud reports connected=False with the transport
+    still "online". Measured 444 such transitions in three days on a live
+    panel, none of them a real outage.
+    """
+    blip = _data_with({"is_connected": False, "state": "online"}, connected=False)
+    assert blip.is_cloud_connected is True
+
+
+def test_genuine_outage_is_still_reported() -> None:
+    """When the transport itself reports offline, that is a real outage."""
+    outage = _data_with({"is_connected": False, "state": "offline"}, connected=False)
+    assert outage.is_cloud_connected is False
+
+
+def test_connected_panel_reads_connected() -> None:
+    ok = _data_with({"is_connected": True, "state": "online"}, connected=True)
+    assert ok.is_cloud_connected is True
+
+
+def test_falls_back_to_the_flag_without_transport_info() -> None:
+    d = VisonicData()
+    d.connected = True
+    d.status = {}
+    assert d.is_cloud_connected is True
+    d.connected = False
+    assert d.is_cloud_connected is False

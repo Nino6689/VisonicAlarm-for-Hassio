@@ -254,6 +254,35 @@ class VisonicData:
         return detail
 
     @property
+    def is_cloud_connected(self) -> bool:
+        """Whether the panel is genuinely reachable by the cloud.
+
+        ⚠️ Do not use the top-level ``connected`` flag for this. A PowerMaster
+        on broadband checks in periodically, and between check-ins the cloud
+        reports ``connected: false`` with the transport still up:
+
+            blip:   connected=False  bba.is_connected=False  bba.state="online"
+            outage: connected=False  bba.is_connected=False  bba.state="offline"
+
+        Measured on a live panel: 444 transitions in three days, one roughly
+        every 10-50 minutes lasting ~90 seconds, none of them a real outage.
+        Reporting those as "the alarm is offline" makes the entity worthless and
+        churns the recorder.
+
+        The transport's ``state`` is the field that actually distinguishes the
+        two, so a panel counts as connected while any transport says "online".
+        """
+        detail = self.connection_detail
+        if detail:
+            if any(t.get("state") == "online" for t in detail.values()):
+                return True
+            # Every transport reports offline - a genuine outage.
+            if any(t.get("state") == "offline" for t in detail.values()):
+                return False
+        # No usable transport info; fall back to the top-level flag.
+        return bool(self.connected)
+
+    @property
     def last_event(self) -> VisonicEvent | None:
         """Most recent panel event, if the log is not empty."""
         return self.events[-1] if self.events else None

@@ -46,8 +46,12 @@ PANEL_SENSORS: tuple[VisonicBinarySensorDescription, ...] = (
         key="cloud_connection",
         translation_key="cloud_connection",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        value_fn=lambda d: bool(d.connected),
-        attributes_fn=lambda d: {"transports": d.connection_detail},
+        # Derived, not the raw `connected` flag - see VisonicData.is_cloud_connected.
+        value_fn=lambda d: d.is_cloud_connected,
+        attributes_fn=lambda d: {
+            "transports": d.connection_detail,
+            "raw_connected": d.connected,
+        },
     ),
     VisonicBinarySensorDescription(
         key="problem",
