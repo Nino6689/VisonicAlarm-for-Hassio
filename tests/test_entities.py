@@ -215,3 +215,24 @@ async def test_last_event_uses_label_not_type_id(
     assert state is not None
     assert state.state == "DISARM"
     assert state.attributes["description"] == "Disarm after alarm"
+
+
+async def test_non_zone_devices_get_a_fault_entity(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    """Keypads, sirens and the PowerLink occupy no zone.
+
+    They used to get no entity at all, so a keypad reporting LOW_BATTERY was
+    visible only in the panel-wide problem sensor. Upstream issues #32, #43,
+    #48 and #57 are all this complaint.
+    """
+    registry = er.async_get(hass)
+    by_unique = {e.unique_id for e in registry.entities.values() if e.platform == DOMAIN}
+
+    # 828779 proximity keypad, 828780 siren, 828774 PowerLink, 828775 panel
+    for device_id in (828779, 828780, 828774, 828775):
+        assert f"visonic_device_{device_id}" in by_unique, f"device {device_id} has no entity"
+
+    # Zones keep their own entities and are not duplicated as fault sensors.
+    assert "visonic_device_828776" not in by_unique
+    assert "visonic_zone_828776" in by_unique

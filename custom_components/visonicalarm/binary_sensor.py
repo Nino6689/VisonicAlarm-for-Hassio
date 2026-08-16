@@ -145,6 +145,14 @@ async def async_setup_entry(
             elif SUBTYPE_MOTION in device.subtype or SUBTYPE_CURTAIN in device.subtype:
                 known.add(device.id)
                 new.append(VisonicZoneMotion(coordinator, device.id))
+            else:
+                # Keypads, sirens, smoke detectors, the PowerLink and the panel
+                # itself occupy no zone, so they used to get no entity at all -
+                # a keypad reporting LOW_BATTERY was visible only in the
+                # aggregate problem sensor. Upstream issues #32, #43, #48 and
+                # #57 are all this complaint.
+                known.add(device.id)
+                new.append(VisonicDeviceFault(coordinator, device.id))
         if new:
             async_add_entities(new)
 
@@ -262,3 +270,34 @@ def _zone_active(alarm_state: str | None, device: VisonicDevice) -> bool | None:
     if alarm_state in (STATE_AWAY, "DISARMING"):
         return True
     return None
+
+
+class VisonicDeviceFault(VisonicZoneEntity, BinarySensorEntity):
+    """Fault state of an enrolled device that occupies no alarm zone.
+
+    Keypads, sirens, smoke detectors, the PowerLink and the control panel all
+    report warnings (low battery, tamper, inactive) but have no zone and so no
+    open/closed state. This surfaces the fault on its own entity instead of
+    leaving it buried in the panel-wide problem sensor.
+
+    The cloud publishes no live state for these devices - only warnings - so
+    this deliberately reports faults rather than pretending to be, say, a smoke
+    detector that could tell you about smoke.
+    """
+
+    _attr_name = None
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: VisonicDataUpdateCoordinator, device_id: int) -> None:
+        """Initialise for one non-zone device."""
+        super().__init__(coordinator, device_id)
+        self._attr_unique_id = f"visonic_device_{device_id}"
+
+    @property
+    def is_on(self) -> bool | None:
+        """True when the device is reporting any warning."""
+        device = self.device
+        if device is None:
+            return None
+        return bool(device.fault_types)
